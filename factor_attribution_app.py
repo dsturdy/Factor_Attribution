@@ -458,7 +458,6 @@ with tab_factor:
 # ─────────────────────────────────────────────
 with tab_attribution:
     st.markdown("### Return Attribution")
-    st.caption("Run Factor Analysis first (Tab 1) to unlock this tab.")
 
     if "betas" not in st.session_state or "df" not in st.session_state:
         st.info("Run a Factor Analysis first (Tab 1) to unlock attribution.")
