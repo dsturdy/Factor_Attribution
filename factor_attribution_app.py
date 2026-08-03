@@ -352,13 +352,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<h1 style="text-align:center; margin-bottom:4px;">FACTOR ATTRIBUTION DASHBOARD</h1>
-<p style="text-align:center; color:#888; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:1px;">
-    MULTI-FACTOR REGRESSION  ·  MANAGER OVERSIGHT  ·  RETURN ATTRIBUTION
-</p>
-<hr style="border-color:#333; margin:16px 0;">
-""", unsafe_allow_html=True)
 
 tab_factor, tab_attribution = st.tabs([
     "Factor Analysis", "Return Attribution",
