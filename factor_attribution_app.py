@@ -97,7 +97,7 @@ def prepare_factors() -> pd.DataFrame:
     price_df = download_prices(factor_tickers)
     if price_df.empty:
         return pd.DataFrame()
-    price_df = price_df.resample("MS").last()
+    price_df = price_df.resample("ME").last()
     cutoff = pd.Timestamp.today().normalize().replace(day=1)
     price_df = price_df[price_df.index < cutoff]
     raw_rets = price_df.pct_change().dropna()
@@ -122,8 +122,8 @@ def prepare_factors() -> pd.DataFrame:
     if not tnx.empty and not irx.empty:
         col_tnx = "Adj Close" if "Adj Close" in tnx.columns else "Close"
         col_irx = "Adj Close" if "Adj Close" in irx.columns else "Close"
-        tnx_y = (tnx[col_tnx] / 100.0).resample("MS").last()
-        irx_y = (irx[col_irx] / 100.0).resample("MS").last()
+        tnx_y = (tnx[col_tnx] / 100.0).resample("ME").last()
+        irx_y = (irx[col_irx] / 100.0).resample("ME").last()
         fi_carry = (tnx_y - irx_y).diff()  # change in spread each month
         f["FI Carry"] = fi_carry.reindex(f.index)
     else:
@@ -138,7 +138,7 @@ def get_rf(index: pd.Index) -> pd.Series:
     if df.empty:
         return pd.Series(0.0, index=index, name="RF")
     col = "Adj Close" if "Adj Close" in df.columns else "Close"
-    rf = (df[col] / 100.0 / 12.0).resample("MS").last()
+    rf = (df[col] / 100.0 / 12.0).resample("ME").last()
     return rf.reindex(index, method="ffill").fillna(0.0).rename("RF")
 
 
@@ -151,9 +151,9 @@ def load_and_merge_all_data(fund_tickers: tuple):
     fund_prices = download_prices(list(fund_tickers))
     if fund_prices.empty:
         return None
-    fund_prices = fund_prices.resample("MS").last()
-    cutoff = pd.Timestamp.today().normalize().replace(day=1)
-    fund_prices = fund_prices[fund_prices.index < cutoff]
+    fund_prices = fund_prices.resample("ME").last()
+    current_month_end = pd.Timestamp.today().to_period("M").to_timestamp("M")
+    fund_prices = fund_prices[fund_prices.index < current_month_end]
     fund_rets = fund_prices.pct_change().dropna()
     if fund_rets.empty:
         return None
