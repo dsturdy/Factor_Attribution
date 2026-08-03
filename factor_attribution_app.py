@@ -352,6 +352,11 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+st.markdown("""
+<h1 style="text-align:center; margin-bottom:4px;">FACTOR ATTRIBUTION DASHBOARD</h1>
+<hr style="border-color:#333; margin:16px 0;">
+""", unsafe_allow_html=True)
+
 
 tab_factor, tab_attribution = st.tabs([
     "Factor Analysis", "Return Attribution",
