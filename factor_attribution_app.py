@@ -360,8 +360,8 @@ st.markdown("""
 <hr style="border-color:#333; margin:16px 0;">
 """, unsafe_allow_html=True)
 
-tab_factor, tab_scorecard, tab_attribution = st.tabs([
-    "Factor Analysis", "Manager Scorecard", "Return Attribution",
+tab_factor, tab_attribution = st.tabs([
+    "Factor Analysis", "Return Attribution",
 ])
 
 # ─────────────────────────────────────────────
@@ -454,100 +454,6 @@ with tab_factor:
             fig_line = plot_rolling_filtered(st.session_state["rolling"], selected)
             if fig_line:
                 st.plotly_chart(fig_line, use_container_width=True)
-
-# ─────────────────────────────────────────────
-# TAB 2: MANAGER SCORECARD
-# ─────────────────────────────────────────────
-with tab_scorecard:
-    st.markdown("### Manager Oversight Scorecard")
-    st.caption("Flags are rule-based: Under Review · On Watch · Approved")
-
-    col_inp, col_bench = st.columns([3, 1])
-    with col_inp:
-        raw_input = st.text_input("Tickers (comma-separated)", placeholder="SPY, AGG, EFA, HYG, GLD")
-    with col_bench:
-        benchmark = st.text_input("Benchmark ticker", value="SPY", placeholder="SPY")
-
-    run_sc = st.button("▶  Generate Scorecard", type="primary")
-
-    if run_sc:
-        tickers = [t.strip().upper() for t in raw_input.split(",") if t.strip()]
-        if not tickers:
-            st.error("Enter at least one ticker.")
-        else:
-            scorecard_rows = []
-            fund_metrics_store = {}
-            progress = st.progress(0, text="Loading fund data…")
-            all_tickers = list(set(tickers + ([benchmark] if benchmark else [])))
-
-            with st.spinner("Running performance analysis…"):
-                df_all = load_and_merge_all_data(tuple(all_tickers))
-
-            if df_all is None:
-                st.error("Could not load data. Check your CSVs.")
-            else:
-                for i, ticker in enumerate(tickers):
-                    progress.progress((i + 1) / len(tickers), text=f"Analysing {ticker}…")
-                    if ticker not in df_all.columns:
-                        scorecard_rows.append({
-                            "Ticker": ticker, "Status": "⚪ No Data", "Reason": "CSV not found"
-                        })
-                        continue
-                    metrics = compute_performance_metrics(
-                        df_all, ticker,
-                        benchmark_ticker=benchmark if benchmark != ticker else None
-                    )
-                    fund_metrics_store[ticker] = metrics
-                    active_col = "Active Return" in metrics.columns
-                    status, reason = flag_manager(metrics, active_col)
-                    row = {"Ticker": ticker, "Status": status, "Reason": reason}
-                    for period in ["1M", "3M", "1Y", "3Y"]:
-                        if period in metrics.index:
-                            row[f"{period} Return"] = metrics.loc[period, "Ann Return"]
-                            row[f"{period} Sharpe"] = metrics.loc[period, "Sharpe"]
-                    if "1Y" in metrics.index:
-                        row["Max DD (1Y)"] = metrics.loc["1Y", "Max Drawdown"]
-                        if active_col:
-                            row["Active Ret (1Y)"] = metrics.loc["1Y", "Active Return"]
-                    scorecard_rows.append(row)
-
-                progress.empty()
-                sc_df = pd.DataFrame(scorecard_rows)
-
-                k1, k2, k3 = st.columns(3)
-                k1.metric("Approved",     sc_df["Status"].str.startswith("").sum())
-                k2.metric("⚠On Watch",     sc_df["Status"].str.startswith("").sum())
-                k3.metric("Under Review", sc_df["Status"].str.startswith("").sum())
-
-                st.divider()
-
-                fmt_cols = {c: "{:.2%}" for c in sc_df.columns if "Return" in c or "DD" in c}
-                fmt_cols.update({c: "{:.2f}" for c in sc_df.columns if "Sharpe" in c})
-                st.dataframe(sc_df.style.format(fmt_cols, na_rep="—"),
-                             use_container_width=True,
-                             height=min(400, 40 + 35 * len(sc_df)))
-
-                # Store in session state so drill-down persists
-                st.session_state["fund_metrics_store"] = fund_metrics_store
-
-    # Drill-down OUTSIDE if run_sc — persists on rerun
-    if "fund_metrics_store" in st.session_state and st.session_state["fund_metrics_store"]:
-        st.divider()
-        st.markdown("#### Fund Detail")
-        drill = st.selectbox(
-            "Select fund to drill into",
-            options=list(st.session_state["fund_metrics_store"].keys()),
-            key="drill_fund",
-        )
-        if drill:
-            st.dataframe(
-                st.session_state["fund_metrics_store"][drill].style.format({
-                    "Cum Return": "{:.2%}", "Ann Return": "{:.2%}",
-                    "Ann Vol": "{:.2%}", "Sharpe": "{:.2f}",
-                    "Max Drawdown": "{:.2%}", "Active Return": "{:.2%}",
-                }, na_rep="—"),
-                use_container_width=True,
-            )
 
 # ─────────────────────────────────────────────
 # TAB 3: RETURN ATTRIBUTION
